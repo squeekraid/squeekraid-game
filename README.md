@@ -10,7 +10,7 @@ become tight canyons, and quiet ones become wide water.
 - Play: <https://squeekraid.xyz> (practice is open; online play is in a closed beta)
 - X: [@SqueekRaid](https://x.com/SqueekRaid)
 
-<!-- Squeekchain Genesis ownership verification: the exact line issued by Genesis goes here. -->
+squeekchain-project: ffe33607-2770-4e50-9845-36ebf99414a0
 
 ## How it uses Squeekchain
 
