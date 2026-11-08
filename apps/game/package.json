@@ -1,0 +1,19 @@
+{
+  "name": "@sqk/game",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SqueekRaid game client on sim rules v3: practice mode, and online mode against the flight gateway.",
+  "scripts": {
+    "build": "node src/build.ts"
+  },
+  "dependencies": {
+    "@sqk/sim": "workspace:*",
+    "@sqk/routes": "workspace:*",
+    "@sqk/protocol": "workspace:*",
+    "viem": "2.37.8"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

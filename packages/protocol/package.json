@@ -1,0 +1,14 @@
+{
+  "name": "@sqk/protocol",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Flight channel messages and the client-side Gear activation state machine (public subset).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./gear-client": "./src/gear/client.ts"
+  },
+  "dependencies": {
+    "zod": "4.1.11"
+  }
+}

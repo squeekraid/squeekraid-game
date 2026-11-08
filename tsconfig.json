@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "apps/game/src/**/*.ts",
+    "apps/game/test/**/*.ts",
+    "packages/sim/src/**/*.ts",
+    "packages/sim/test/**/*.ts",
+    "packages/routes/src/**/*.ts",
+    "packages/protocol/src/**/*.ts",
+    "packages/domain/activity/src/**/*.ts",
+    "packages/domain/activity/test/**/*.ts"
+  ]
+}

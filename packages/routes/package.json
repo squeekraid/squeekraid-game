@@ -1,0 +1,9 @@
+{
+  "name": "@sqk/routes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Route catalogue for rules v3: Genesis (fixed), Daily (one per wheel day) and the neutral control river, built from Squeekchain wheel data.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": { "@sqk/sim": "workspace:*" }
+}

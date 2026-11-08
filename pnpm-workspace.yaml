@@ -1,0 +1,6 @@
+packages:
+  - apps/game
+  - packages/sim
+  - packages/routes
+  - packages/protocol
+  - packages/domain/activity

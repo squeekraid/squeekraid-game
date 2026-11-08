@@ -1,0 +1,17 @@
+{
+  "name": "squeekraid",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": { "node": ">=22.18.0" },
+  "scripts": {
+    "build:game": "node apps/game/src/build.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.6",
+    "typescript": "5.9.3",
+    "vitest": "3.2.4"
+  }
+}

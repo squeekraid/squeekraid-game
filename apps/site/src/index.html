@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SqueekRaid · a pixel river raid starring Squeektoshi</title>
+<!--META-->
+<style>
+/*FONTS*/
+:root{--night:#0d0b1e;--ground:#17132f;--panel:#1f1a3d;--line:#2f2856;--line2:#453c7a;--ink:#f3eedd;--soft:#c9c3e6;--muted:#9a93c2;--gold:#f6c445;--gold-d:#c58a1d;--orange:#ff9d3d;--lime:#b6f06a;--sky:#9fd8ff;--bad:#ff6b6b;--brown:#3a1f08;
+  --display:"Jersey 10","Courier New",monospace;--ui:"Pixelify Sans",system-ui,sans-serif;--mono:"IBM Plex Mono",ui-monospace,monospace;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--night);color:var(--ink);font:400 17px/1.55 var(--ui);-webkit-font-smoothing:antialiased}
+a{color:var(--gold)}
+a:focus-visible,.btn:focus-visible{outline:3px solid var(--sky);outline-offset:3px}
+img.px{image-rendering:pixelated}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right))}
+header.top{position:sticky;top:0;z-index:5;background:rgba(13,11,30,.92);border-bottom:2px solid var(--line);backdrop-filter:blur(6px)}
+header.top .wrap{display:flex;align-items:center;gap:16px;min-height:62px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand img{width:36px;height:36px;border-radius:6px;box-shadow:0 0 0 2px var(--gold),0 0 0 4px var(--brown)}
+.mark{font:400 30px/1 var(--display);color:var(--gold);text-decoration:none;text-shadow:0 2px 0 var(--brown)}
+.mark em{font-style:normal;color:var(--orange)}
+nav.links{display:flex;gap:18px;font-size:15px;margin-left:12px}
+nav.links a{color:var(--soft);text-decoration:none}
+nav.links a:hover{color:var(--ink)}
+.acct{display:flex;gap:8px;margin-left:auto;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.5em;font:600 17px var(--ui);text-decoration:none;color:var(--night);background:var(--gold);padding:12px 22px;border:0;box-shadow:inset 0 -4px 0 var(--gold-d),0 0 0 3px var(--brown);min-height:48px;white-space:nowrap}
+.btn:hover{background:#ffd76a}
+.btn.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 2px var(--line2)}
+.btn.ghost:hover{box-shadow:inset 0 0 0 2px var(--gold)}
+.btn.ghost.on{color:var(--lime);box-shadow:inset 0 0 0 2px var(--lime)}.btn.ghost.on .lbl{max-width:90px;overflow:hidden;text-overflow:ellipsis}
+.btn.sm{font-size:15px;padding:8px 14px;min-height:40px}
+.acct-item{position:relative;display:inline-flex}
+.acct-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:20;min-width:190px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--panel);box-shadow:0 0 0 2px var(--line2),0 14px 32px rgba(0,0,0,.5)}.acct-menu[hidden]{display:none}
+.acct-menu .who{margin:0;font:600 14px var(--ui);color:var(--soft);overflow-wrap:anywhere}.acct-menu .btn{width:100%}
+.btn.ghost .av{width:22px;height:22px;border-radius:50%;flex:none}.btn.ghost.has-av svg{display:none}
+.btn svg{width:18px;height:18px;flex:none}
+.hero{padding:56px 0 64px;background:radial-gradient(ellipse at 72% 45%,#2a2160 0,rgba(13,11,30,0) 62%)}
+.hero .wrap{display:grid;grid-template-columns:1fr 1.05fr;gap:44px;align-items:center}
+.kicker{font:500 13px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+h1.logo{margin:14px 0 0;font:400 clamp(64px,10vw,124px)/.8 var(--display);color:var(--gold);text-shadow:3px 0 0 var(--brown),-3px 0 0 var(--brown),0 3px 0 var(--brown),0 -3px 0 var(--brown),0 9px 0 #c0631b,0 12px 0 var(--brown)}
+h1.logo em{font-style:normal;color:var(--orange)}
+.with{display:flex;align-items:center;gap:14px;margin-top:26px;font:400 clamp(22px,3vw,32px)/1 var(--display);letter-spacing:.2em;text-transform:uppercase;text-shadow:0 3px 0 var(--brown)}
+.with i{flex:0 0 44px;height:7px;background:var(--gold);box-shadow:0 3px 0 var(--brown)}
+.lead{font-size:clamp(18px,2vw,21px);color:var(--soft);max-width:32em;margin:24px 0 0}
+.cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px;align-items:center}
+.cta small{color:var(--muted);font-size:14px;flex-basis:100%}
+.shots{display:flex;justify-content:center;align-items:center;padding:8px 0 28px}
+.shots .shot{width:min(36%,220px);height:auto;border:4px solid var(--line2);border-radius:12px;image-rendering:pixelated;box-shadow:0 18px 40px rgba(0,0,0,.5);min-width:0}
+.shots .shot:first-child{transform:rotate(-5deg);margin-right:-7%}.shots .shot:last-child{transform:rotate(5deg) translateY(26px);margin-left:-7%}
+.captain{position:relative;z-index:2;width:min(38%,232px);margin:0;flex:none;transform:translateY(-10px)}
+.captain img{display:block;width:100%;height:auto;border:4px solid var(--gold);border-radius:14px;box-shadow:0 0 0 4px var(--brown),0 22px 46px rgba(0,0,0,.6)}
+.captain figcaption{position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);white-space:nowrap;font:400 clamp(18px,2.2vw,24px)/1 var(--display);letter-spacing:.06em;color:var(--night);background:var(--gold);padding:6px 12px 5px;box-shadow:inset 0 -3px 0 var(--gold-d),0 0 0 3px var(--brown)}
+section{padding:60px 0;border-top:2px solid var(--line)}
+h2{font:400 clamp(38px,5vw,54px)/.95 var(--display);color:var(--ink);margin:0 0 18px;text-shadow:0 3px 0 var(--brown)}
+h3{font:600 19px var(--ui);margin:0 0 6px;color:var(--gold)}
+p{margin:0 0 12px;max-width:62ch}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:22px}
+.card{background:var(--ground);border:2px solid var(--line);padding:20px;min-width:0}
+.card p{color:var(--soft);font-size:16px;margin:0}
+.step{font:400 40px/1 var(--display);color:var(--orange)}
+.board{position:relative;margin-top:22px;border:2px solid var(--line2);background:var(--ground);overflow:hidden}
+.board .head{display:grid;grid-template-columns:70px 1fr 120px 110px;gap:12px;padding:12px 18px;border-bottom:2px solid var(--line);font:500 13px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.board .rows{filter:blur(5px);opacity:.7;padding:6px 0}
+.board .row{display:grid;grid-template-columns:70px 1fr 120px 110px;gap:12px;padding:12px 18px;align-items:center}
+.board .row b{display:block;height:14px;background:var(--line2)}
+.board .row:nth-child(1) b:first-child{background:var(--gold)}.board .row:nth-child(2) b:first-child{background:var(--soft)}.board .row:nth-child(3) b:first-child{background:var(--orange)}
+.board .row b.w1{width:60%}.board .row b.w2{width:80%}.board .row b.w3{width:45%}
+.board .lock{position:absolute;inset:48px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;background:linear-gradient(180deg,rgba(23,19,47,.2),rgba(23,19,47,.85));padding:20px}
+.board .lock svg{width:40px;height:40px;color:var(--gold)}
+.soon{font:400 44px/1 var(--display);color:var(--gold);text-shadow:0 3px 0 var(--brown)}
+.board .lock p{color:var(--soft);margin:0}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:22px}
+.mode{display:flex;flex-direction:column;gap:12px;background:var(--ground);border:2px solid var(--line);padding:22px;min-width:0}
+.mode.online{border-color:var(--gold);box-shadow:0 0 0 2px var(--brown) inset}
+.mode .top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.mode h3{font:400 34px/1 var(--display);color:var(--ink);margin:0}
+.mode .tag{font-size:17px;color:var(--soft);margin:0}
+.mode ul{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.mode li{display:grid;grid-template-columns:22px 1fr;gap:8px;font-size:16px;color:var(--soft)}
+.mode li::before{content:"✓";color:var(--lime);font-weight:700}.mode li.off::before{content:"–";color:var(--muted)}.mode li.off{color:var(--muted)}
+.mode .btn{align-self:flex-start;margin-top:auto}
+.badge{display:inline-block;font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border:2px solid currentColor}
+.badge.yes{color:var(--lime)}.badge.later{color:var(--gold)}
+.loop{margin-top:26px;padding:26px 24px;background:linear-gradient(135deg,#3a2a0a,#2a1d52 70%);border:3px solid var(--gold);box-shadow:0 0 0 3px var(--brown),0 16px 40px rgba(0,0,0,.45)}
+.loop .slogan{font:400 clamp(34px,5.4vw,60px)/.95 var(--display);color:var(--gold);text-shadow:0 3px 0 var(--brown);margin:0 0 6px}
+.loop .slogan em{font-style:normal;color:var(--orange)}
+.loop .sub{color:var(--ink);font-weight:600;margin:0 0 18px}
+.loop ol{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;counter-reset:l}
+.loop li{background:rgba(13,11,30,.55);border:2px solid var(--line2);padding:14px 16px;min-width:0;counter-increment:l}
+.loop li b{display:block;font:400 26px/1 var(--display);color:var(--lime);margin-bottom:6px}
+.loop li b::before{content:counter(l) ". ";color:var(--gold)}
+.loop li span{color:var(--soft);font-size:15px}
+.loop .note{margin:16px 0 0;color:var(--gold);font:600 15px var(--ui)}
+.faqgroup{margin-top:26px}
+.faqgroup h3{font:500 13px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+details{background:var(--ground);border:2px solid var(--line);padding:14px 18px;margin-top:10px}
+summary{cursor:pointer;font-weight:600;min-height:28px}
+details p{color:var(--soft);margin:10px 0 0}
+footer{border-top:2px solid var(--line);background:var(--ground);padding:40px 0 calc(28px + env(safe-area-inset-bottom));color:var(--muted);font-size:15px}
+.foot{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px}
+.foot > div{min-width:0}
+.foot .about p{margin:10px 0 0;color:var(--soft);max-width:30ch}
+.foot h4{font:500 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:4px 0 10px}
+.foot ul{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.foot a{color:var(--soft);text-decoration:none;overflow-wrap:anywhere}.foot a:hover{color:var(--gold)}
+.legal{display:flex;flex-wrap:wrap;gap:8px 18px;justify-content:space-between;margin-top:30px;padding-top:18px;border-top:2px solid var(--line);font-size:14px}
+.legal .copy{font-family:var(--mono)}
+@media (max-width:980px){nav.links{display:none}}
+@media (max-width:860px){.hero .wrap{grid-template-columns:1fr}.grid3,.modes,.loop ol{grid-template-columns:1fr}.foot{grid-template-columns:1fr 1fr}}
+@media (max-width:480px){.foot{grid-template-columns:1fr}}
+@media (max-width:350px){.brand .mark{display:none}}
+@media (max-width:560px){header.top .wrap{gap:10px;min-height:56px}.brand .mark{font-size:clamp(18px,6vw,26px)}.cta{gap:12px}.cta .btn{flex:1 1 100%;min-height:54px}.acct .btn{padding:6px 10px;font-size:14px;min-height:40px}.acct .lbl{display:none}.board .head,.board .row{grid-template-columns:44px 1fr 80px}.board .head span:last-child,.board .row b:last-child{display:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head>
+<body>
+<header class="top"><div class="wrap">
+  <a class="brand" href="#top" aria-label="SqueekRaid home"><img src="assets/captain-96.png" width="36" height="36" alt=""><span class="mark">Squeek<em>Raid</em></span></a>
+  <nav class="links" aria-label="Sections"><a href="#how">How it works</a><a href="#boards">Leaderboards</a><a href="#modes">Practice and online</a><a href="play/#profile">My profile</a><a href="#faq">FAQ</a></nav>
+  <div class="acct">
+    <span class="acct-item"><a class="btn ghost sm" id="authWallet" href="play/#wallet" aria-label="Connect wallet"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="10"/><path d="M1.5 6.5h13M10.5 10h2"/></svg><span class="lbl">Wallet</span></a></span>
+    <span class="acct-item"><a class="btn ghost sm" id="authX" href="play/#x" aria-label="Connect X"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M12.2 1.5h2.2L9.6 7l5.6 7.5h-4.4L7.4 9.9 3.4 14.5H1.2l5.2-5.9L1 1.5h4.5l3.1 4.1zm-.8 11.7h1.2L4.7 2.7H3.4z"/></svg><span class="lbl">Connect X</span></a></span>
+    <a class="btn sm" href="play/">Play</a>
+  </div>
+</div></header>
+
+<main id="top">
+<div class="hero"><div class="wrap">
+  <div>
+    <div class="kicker">A community arcade game for Squeekchain</div>
+    <h1 class="logo">Squeek<em>Raid</em></h1>
+    <div class="with"><i aria-hidden="true"></i>with Squeektoshi<i aria-hidden="true"></i></div>
+    <p class="lead">A pixel river raid. Squeektoshi is a real hamster, and the rivers you fly are drawn from his recorded wheel runs: busy nights make wild rivers, sleepy nights make calm ones.</p>
+    <div class="cta"><a class="btn" href="play/">▶ Play in your browser</a><!--FOLLOW--></div>
+  </div>
+  <div class="shots"><img class="shot" src="assets/shot-dune.png" width="381" height="635" alt="A flight through the Dune Canyon stage: a blue river between sand banks, cacti, the yellow plane and the distance counter."><figure class="captain"><img src="assets/captain-480.png" width="480" height="480" alt="Captain Squeektoshi: a pixel-art hamster in flying goggles and a red scarf."><figcaption>Captain Squeektoshi</figcaption></figure><img class="shot" src="assets/shot-ember.png" width="381" height="635" alt="A flight through the Ember Gorge: two channels of dark water between glowing lava banks."></div>
+</div></div>
+
+<section id="how"><div class="wrap">
+  <h2>How it works</h2>
+  <p>Squeektoshi runs on his wheel at home. Squeekchain records each run. SqueekRaid turns that record into rivers.</p>
+  <div class="grid3">
+    <div class="card"><div class="step">1</div><h3>A wheel run is recorded</h3><p>Squeekchain measures the wheel day by day, from noon to noon UTC.</p></div>
+    <div class="card"><div class="step">2</div><h3>The run becomes a river</h3><p>Each half hour of running shapes a stretch of river. Every Daily route is built from a recorded day, the same river for everyone.</p></div>
+    <div class="card"><div class="step">3</div><h3>You fly it</h3><p>Steer, shoot the cats, collect seeds to keep your fuel from running out, and go as far as you can through five worlds.</p></div>
+  </div>
+  <p class="lead">Genesis is fixed forever: Squeektoshi's first recorded night, the all-time challenge. A new Daily arrives every day at 00:00 UTC.</p>
+</div></section>
+
+<section id="boards"><div class="wrap">
+  <h2>Leaderboards</h2>
+  <p>Genesis all time and every Daily, ranked by verified distance.</p>
+  <div class="board">
+    <div class="head"><span>Rank</span><span>Pilot</span><span>Distance</span><span>Route</span></div>
+    <div class="rows" aria-hidden="true">
+      <div class="row"><b class="w2"></b><b class="w1"></b><b class="w2"></b><b class="w3"></b></div>
+      <div class="row"><b class="w2"></b><b class="w2"></b><b class="w1"></b><b class="w3"></b></div>
+      <div class="row"><b class="w2"></b><b class="w3"></b><b class="w2"></b><b class="w1"></b></div>
+      <div class="row"><b class="w1"></b><b class="w1"></b><b class="w3"></b><b class="w2"></b></div>
+      <div class="row"><b class="w1"></b><b class="w2"></b><b class="w1"></b><b class="w3"></b></div>
+    </div>
+    <div class="lock"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="3" y="7" width="10" height="7"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg><span class="soon">Coming Soon</span><p>The boards open with online play. Only flights the server has verified will be listed.</p></div>
+  </div>
+</div></section>
+
+<section id="modes"><div class="wrap">
+  <h2>Practice and online</h2>
+  <p>Two ways to fly the same rivers. Practice is for learning; online is where flights count.</p>
+  <div class="modes">
+    <div class="mode">
+      <div class="top"><h3>Practice</h3><span class="badge yes">Open now</span></div>
+      <p class="tag">Jump straight in. No sign-in.</p>
+      <ul>
+        <li>The last few days’ Daily routes, from recorded wheel runs</li>
+        <li>A practice Gear kit to try every item</li>
+        <li>No wallet, no account</li>
+        <li class="off">Results stay on this device, not on the boards</li>
+      </ul>
+      <a class="btn ghost" href="play/">Play practice</a>
+    </div>
+    <div class="mode online">
+      <div class="top"><h3>Online</h3><span class="badge later">Closed beta</span></div>
+      <p class="tag">Every flight counts.</p>
+      <ul>
+        <li>Flights verified by the server and ranked on the leaderboards</li>
+        <li>Mystery Boxes on the Daily, Gear for Genesis</li>
+        <li>Live Drops (cosmetics), only while Squeektoshi is really running</li>
+        <li>Needs a wallet, X and an invite code</li>
+      </ul>
+      <a class="btn" href="play/#wallet">Connect and fly online</a>
+    </div>
+  </div>
+  <div class="loop" aria-labelledby="loopTitle">
+    <p class="slogan" id="loopTitle">Fly the Daily. <em>Gear up.</em> Raid Genesis.</p>
+    <p class="sub">Online, every day is a supply run for the all-time record.</p>
+    <ol>
+      <li><b>Fly today's Daily</b><span>Mystery Boxes appear along the river. Fly into them to collect.</span></li>
+      <li><b>Open them for Gear</b><span>Bubble Shield, Spread Shot, Seed Tank or Long Barrel, in the Hangar.</span></li>
+      <li><b>Take it into Genesis</b><span>Load up to 3 Gear types, 2 of each, and push your best distance.</span></li>
+    </ol>
+    <p class="note">Boxes and Gear from a Daily last until 00:00 UTC. Use them the same day.</p>
+  </div>
+</div></section>
+
+<section id="faq"><div class="wrap">
+  <h2>Questions</h2>
+  <div class="faqgroup"><h3>The game</h3>
+  <details name="faq"><summary>What is SqueekRaid?</summary><p>A free pixel arcade game you play in your browser. Fly a small plane down a river, shoot the cats, collect seeds to keep your fuel up, and see how far you get. The rivers are drawn from the recorded wheel runs of Squeektoshi, a real hamster on Squeekchain.</p></details>
+  <details name="faq"><summary>Is it free?</summary><p>Yes. There is nothing to install and nothing to pay. Signing in for online play is a wallet signature, not a transaction: it costs no gas and moves no funds.</p></details>
+  <details name="faq"><summary>What are Genesis and the Daily?</summary><p>Genesis is one fixed river, built from Squeektoshi&rsquo;s first recorded night: the same for everyone, forever, with an all-time leaderboard. The Daily is a new river every day at 00:00 UTC, built from his most recent recorded day (noon to noon UTC). If a day has no usable recording, the last good route is used again and labelled with the day it really comes from.</p></details>
+  <details name="faq"><summary>How do I fly?</summary><p>Keyboard: &larr; &rarr; or A and D to steer, Space or J to fire, Z, X and C (or 1, 2 and 3) for Gear, P or Esc to pause. You can change every key in Settings. On a phone, drag on the river to steer and hold FIRE with another finger.</p></details>
+  <details name="faq"><summary>Does it work on my phone?</summary><p>Yes, in any modern mobile browser. Phones and browsers vary, so tell us if something looks wrong.</p></details>
+  <details name="faq"><summary>Is the hamster activity in the game live?</summary><p>Routes come from Squeektoshi&rsquo;s recorded runs and say so. Live Drops, when online play opens, appear only while the official Squeekchain data shows him running at that moment. Nothing in SqueekRaid simulates his activity.</p></details>
+  </div>
+  <div class="faqgroup"><h3>Online play and accounts</h3>
+  <details name="faq"><summary>How do I join online play?</summary><p>Online play is in a closed beta. Connect your wallet, link X, and enter your invite code in the game. Watch <a href="__X__" target="_blank" rel="noopener">@SqueekRaid on X</a> for news about the beta.</p></details>
+  <details name="faq"><summary>Why connect a wallet and X?</summary><p>Your wallet is your SqueekRaid account: it keeps your Gear, collection and results. Linking X puts your name on the leaderboards next to your verified flights.</p></details>
+  <details name="faq"><summary>Is my wallet safe?</summary><p>SqueekRaid only asks you to sign a sign-in message. It never asks for your seed phrase or private key, and never asks you to approve a transaction or a token allowance. If anything claiming to be SqueekRaid asks for one, it is not us.</p></details>
+  <details name="faq"><summary>Why isn&rsquo;t my score on the leaderboard?</summary><p>Only online flights that the server has verified are listed, and only for pilots with both a wallet and X linked. Practice results never appear on the boards.</p></details>
+  <details name="faq"><summary>How do I sign out?</summary><p>Click the Wallet or X button at the top of this page and choose Disconnect or Sign out. Both end your session on this browser.</p></details>
+  </div>
+  <div class="faqgroup"><h3>Gear and rewards</h3>
+  <details name="faq"><summary>What are Mystery Boxes?</summary><p>On the online Daily, Mystery Boxes appear along the river. Each box you collect opens in the Hangar into one piece of Gear.</p></details>
+  <details name="faq"><summary>What does each Gear do?</summary><p>Bubble Shield absorbs one hit. Spread Shot fires three ways for a while. Seed Tank tops up your seeds. Long Barrel gives your shots longer range for a while.</p></details>
+  <details name="faq"><summary>How do I use Gear in Genesis?</summary><p>Before an online Genesis flight, pick a loadout of up to 3 Gear types, up to 2 of each. Fire them during the flight with Z, X and C. A piece of Gear is used up when you activate it.</p></details>
+  <details name="faq"><summary>When do boxes and Gear expire?</summary><p>At the next 00:00 UTC after the Daily flight that earned them, opened or not. Use them the same day.</p></details>
+  <details name="faq"><summary>What are Live Drops?</summary><p>Rare cosmetic capsules that can appear only while the official Squeekchain data shows Squeektoshi running at that moment. They change how things look, never how the game plays.</p></details>
+  <details name="faq"><summary>Is anything for sale? Is there a token?</summary><p>At the moment nothing in SqueekRaid is for sale. Gear and cosmetics are in-game items, not tokens or NFTs.</p></details>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <div class="foot">
+    <div class="about"><b class="mark" aria-hidden="true">Squeek<em>Raid</em></b><p>A free pixel river raid starring Squeektoshi, the hamster of Squeekchain.</p></div>
+    <div><h4>Game</h4><ul><li><a href="play/">Play now</a></li><li><a href="#how">How it works</a></li><li><a href="#modes">Practice and online</a></li><li><a href="#boards">Leaderboards</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+    <div><h4>Community</h4><ul><!--COMMUNITY--><li><a href="https://squeekchain.com" target="_blank" rel="noopener">Squeekchain</a></li></ul></div>
+    <div><h4>Contact</h4><ul><!--CONTACT--></ul></div>
+  </div>
+  <div class="legal"><span class="copy">&copy; 2026 SqueekRaid</span><span>An independent community game for Squeekchain.</span></div>
+</div></footer>
+<!--SESSION-->
+</body></html>

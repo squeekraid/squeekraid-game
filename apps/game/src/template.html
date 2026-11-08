@@ -1,0 +1,583 @@
+<title>SqueekRaid</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/*FONTS*/
+/* Layout: one portrait arcade screen (240 x 400 art pixels) centred; the flight lab sits beside it on
+   wide displays and opens as a sheet on phones; a touch deck sits under the screen on touch devices.
+   Deliberate single dark look, taken from the Squeektoshi Airways art board. */
+:root {
+  --page: #0b0a18;
+  --ground: #15122b;
+  --panel: #1f1a3d;
+  --line: #2f2856;
+  --line2: #4a4370;
+  --ink: #f4ecd8;
+  --muted: #aaa3cc;
+  --soft: #c9c3e6;
+  --gold: #f6c445;
+  --gold-d: #c58a1d;
+  --gold-l: #ffe39a;
+  --blue: #4f7cff;
+  --lime: #d4ff4a;
+  --night: #1b1530;
+  --cream: #fff7e6;
+  --bad: #ff6b6b;
+  --display: "Jersey 10", "Courier New", monospace;
+  --ui: "Pixelify Sans", "Trebuchet MS", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --s: 2;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  background: var(--page); color: var(--ink); font-family: var(--ui);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0; box-sizing: border-box; overflow: hidden;
+  -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+button { font-family: var(--ui); }
+button:focus-visible, .route:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+#app { height: 100%; display: flex; gap: 28px; justify-content: center; align-items: stretch; }
+#cabinet { flex: 1 1 auto; min-width: 0; max-width: 760px; display: flex; flex-direction: column; padding-block: 12px; box-sizing: border-box; }
+#screenBox { flex: 1 1 auto; min-height: 0; display: flex; align-items: center; justify-content: center; }
+#screenWrap {
+  position: relative; width: 480px; height: 800px; background: #000;
+  box-shadow: 0 0 0 4px #0b0a18, 0 0 0 6px var(--line), 0 18px 60px rgba(0,0,0,.55);
+  border-radius: 10px; overflow: hidden; touch-action: none;
+}
+#game { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+canvas.px { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+
+/* ---------- HUD ---------- */
+#hud { position: absolute; inset: 0; pointer-events: none; --biome: var(--cream); }
+#hud::before, #hud::after { content: ""; position: absolute; left: 0; right: 0; pointer-events: none; }
+#hud::before { top: 0; height: calc(var(--s)*46px); background: linear-gradient(180deg, rgba(11,10,24,.62), rgba(11,10,24,0)); }
+#hud::after { bottom: 0; height: calc(var(--s)*40px); background: linear-gradient(0deg, rgba(11,10,24,.55), rgba(11,10,24,0)); }
+#hud > * { z-index: 1; }
+#hud[data-biome="0"] { --biome: #b6f06a; } #hud[data-biome="1"] { --biome: #ffcf7a; } #hud[data-biome="2"] { --biome: #bfe0ff; } #hud[data-biome="3"] { --biome: #d4ff4a; } #hud[data-biome="4"] { --biome: #ff9d5c; }
+.hud-top { position: absolute; left: calc(var(--s)*8px); right: calc(var(--s)*8px); top: calc(var(--s)*8px); display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.hud-left { display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--s)*2.5px); }
+.dist { font-family: var(--display); font-size: calc(var(--s)*30px); line-height: .78; color: var(--cream); text-shadow: 1px 0 0 #1b1530, -1px 0 0 #1b1530, 0 1px 0 #1b1530, 0 -1px 0 #1b1530, 0 calc(var(--s)*1.5px) 0 #1b1530; font-variant-numeric: tabular-nums; }
+.dist small { font-size: .5em; color: var(--gold); margin-left: .12em; }
+.stage-chip { font-family: var(--mono); font-size: calc(var(--s)*6px); letter-spacing: .1em; text-transform: uppercase; color: var(--night); background: var(--biome); box-shadow: 0 0 0 1px #1b1530; padding: calc(var(--s)*.8px) calc(var(--s)*3px); }
+.hud-right { display: flex; gap: calc(var(--s)*3px); align-items: center; pointer-events: auto; }
+.chip { font-family: var(--mono); font-size: calc(var(--s)*6px); letter-spacing: .1em; text-transform: uppercase; padding: calc(var(--s)*1.6px) calc(var(--s)*3.5px); background: var(--ground); border: 2px solid var(--gold); color: var(--gold); white-space: nowrap; }
+.icon-btn { min-width: 40px; min-height: 40px; width: calc(var(--s)*22px); height: calc(var(--s)*22px); display: grid; place-items: center; font-family: var(--ui); font-weight: 700; font-size: calc(var(--s)*7px); color: var(--ink); background: var(--ground); border: 2px solid var(--line2); cursor: pointer; padding: 0; }
+.icon-btn svg { width: 50%; height: 50%; }
+.pill { position: absolute; left: calc(var(--s)*8px); top: calc(var(--s)*64px); display: flex; align-items: center; gap: calc(var(--s)*3px); padding: calc(var(--s)*2.6px) calc(var(--s)*4px); background: var(--ground); border: 2px solid var(--line2); font-family: var(--mono); font-size: calc(var(--s)*6px); color: var(--soft); max-width: calc(100% - var(--s)*16px); box-sizing: border-box; }
+.pill svg { width: calc(var(--s)*7px); height: calc(var(--s)*7px); flex: none; }
+.pill.running { border-color: var(--gold); color: var(--gold-l); }
+.pill.running svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hud-bottom { position: absolute; left: calc(var(--s)*8px); right: calc(var(--s)*8px); bottom: calc(var(--s)*8px); display: flex; gap: calc(var(--s)*4px); align-items: stretch; }
+.seeds { flex: 1; display: flex; align-items: center; gap: calc(var(--s)*4px); padding: calc(var(--s)*2.6px) calc(var(--s)*4px); background: var(--ground); border: 2px solid var(--line2); }
+.seeds span { font-family: var(--mono); font-size: calc(var(--s)*5.6px); letter-spacing: .12em; color: var(--ink); }
+.seeds .bar { position: relative; flex: 1; height: calc(var(--s)*5px); background: var(--line); overflow: hidden; }
+.seeds .bar i { position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--gold); }
+.seeds .bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(25% - 2px), var(--ground) calc(25% - 2px) 25%); }
+.seeds.low { border-color: var(--bad); }
+.seeds.low .bar i { background: var(--bad); animation: blink .5s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .35; } }
+.blocks { display: flex; align-items: center; gap: calc(var(--s)*3px); padding: calc(var(--s)*2.6px) calc(var(--s)*4px); background: var(--ground); border: 2px solid var(--gold); font-family: var(--mono); font-size: calc(var(--s)*6px); color: var(--gold-l); white-space: nowrap; }
+.blocks svg { width: calc(var(--s)*6px); height: calc(var(--s)*6px); }
+.replay-tag { position: absolute; right: calc(var(--s)*8px); bottom: calc(var(--s)*28px); pointer-events: auto; font-family: var(--mono); font-size: calc(var(--s)*6px); min-height: 36px; padding: 0 calc(var(--s)*4px); color: var(--ink); background: var(--ground); border: 2px solid var(--line2); cursor: pointer; }
+
+#toast { position: absolute; left: calc(var(--s)*16px); right: calc(var(--s)*16px); top: calc(var(--s)*84px); display: flex; flex-direction: column; align-items: center; gap: calc(var(--s)*2px); padding: calc(var(--s)*5px) calc(var(--s)*6px) calc(var(--s)*6px); background: rgba(21,18,43,.88); border: 2px solid var(--gold); pointer-events: none; text-align: center; opacity: 0; transform: translateY(-4px); transition: opacity .2s, transform .2s; }
+#toast.show { opacity: 1; transform: none; }
+#toast.calm { border-color: var(--line2); }
+#toast .t1 { font-family: var(--display); font-size: calc(var(--s)*20px); line-height: .85; color: var(--gold); }
+#toast.calm .t1 { color: var(--cream); }
+#toast .t2 { font-family: var(--mono); font-size: calc(var(--s)*6px); color: var(--ink); }
+
+/* ---------- overlays ---------- */
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; overflow-y: auto; box-sizing: border-box; font-size: max(12px, calc(var(--s)*6.6px)); }
+#menu { background: linear-gradient(180deg, rgba(13,11,30,.94) 0%, rgba(13,11,30,.72) 34%, rgba(13,11,30,.6) 55%, rgba(13,11,30,.9) 100%); padding: calc(var(--s)*14px) calc(var(--s)*10px) calc(var(--s)*12px); gap: calc(var(--s)*6px); }
+#pause { background: rgba(13,11,30,.8); padding: calc(var(--s)*14px); justify-content: center; }
+.kicker { font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.4px)); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.title-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 10px; }
+.hero { display: flex; flex-direction: column; gap: calc(var(--s)*4px); }
+.logo { margin: 0; display: flex; flex-direction: column; font-family: var(--display); font-weight: 400; line-height: .78; }
+.logo .l1 { font-size: calc(var(--s)*44px); color: var(--gold); letter-spacing: .01em;
+  text-shadow: calc(var(--s)*1px) 0 0 #3a1f08, calc(var(--s)*-1px) 0 0 #3a1f08, 0 calc(var(--s)*1px) 0 #3a1f08, 0 calc(var(--s)*-1px) 0 #3a1f08, 0 calc(var(--s)*3px) 0 #c0631b, 0 calc(var(--s)*4px) 0 #3a1f08; }
+.logo .l1 em { font-style: normal; color: #ff9d3d; }
+.logo .l2 { display: flex; align-items: center; gap: calc(var(--s)*4px); font-size: calc(var(--s)*15px); color: var(--cream); letter-spacing: .2em; text-transform: uppercase; margin-top: calc(var(--s)*4px); padding-left: .3em;
+  text-shadow: 0 calc(var(--s)*1.5px) 0 #3a1f08; }
+.logo .l2 i { flex: 0 0 calc(var(--s)*16px); height: calc(var(--s)*3px); background: var(--gold); box-shadow: 0 calc(var(--s)*1.5px) 0 #3a1f08; }
+.logo .l2 i:first-child { margin-left: -.3em; }
+.badge-pilot { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
+.badge-pilot .portrait { object-fit: cover; width: calc(var(--s)*34px); height: calc(var(--s)*34px); background: radial-gradient(circle, #3a2e6b 0 55%, #241d47 56%); border: 2px solid var(--gold); box-shadow: 0 0 0 2px #3a1f08; }
+.badge-pilot span { font-family: var(--mono); font-size: max(9px, calc(var(--s)*4.4px)); letter-spacing: .1em; text-transform: uppercase; color: var(--gold-l); }
+.tagline { margin: 0; font-size: max(12px, calc(var(--s)*6.4px)); line-height: 1.35; color: var(--soft); max-width: 34em; }
+#btnFly { display: flex; align-items: center; justify-content: center; gap: .4em; }
+.btn .go { font-size: .6em; animation: blink 1s steps(2) infinite; }
+body.reduced .btn .go { animation: none; }
+.title { font-family: var(--display); font-weight: 400; color: var(--gold); font-size: calc(var(--s)*33px); line-height: .8; text-shadow: 0 calc(var(--s)*2px) 0 #6b3f12; margin: 0; }
+.portrait { width: calc(var(--s)*32px); height: calc(var(--s)*32px); flex: none; }
+.status { align-self: flex-start; display: flex; align-items: center; gap: 8px; padding: calc(var(--s)*2.6px) calc(var(--s)*4px); border: 2px solid var(--line2); background: var(--ground); font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.6px)); color: var(--soft); }
+.status svg { width: 14px; height: 14px; flex: none; }
+.group-label { font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.2px)); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-top: calc(var(--s)*3px); }
+.routes { display: flex; flex-direction: column; gap: calc(var(--s)*4px); }
+.route { display: flex; flex-direction: column; gap: calc(var(--s)*3px); width: 100%; text-align: left; color: var(--ink); cursor: pointer; background: var(--panel); border: 2px solid var(--line); padding: calc(var(--s)*5px) calc(var(--s)*6px); font-size: inherit; }
+.route.genesis { border-color: var(--gold); }
+.route.daily { border-color: var(--blue); }
+details.more { border: 2px solid var(--line); background: var(--ground); padding: 6px 10px; }
+details.more summary { cursor: pointer; font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.4px)); color: var(--soft); min-height: 28px; display: flex; align-items: center; }
+details.more .routes { margin-top: 6px; }
+/* Genesis before it opens: shown, not flyable */
+.route.soon { position: relative; cursor: default; }
+.route.soon:hover { background: var(--panel); }
+.route.soon > :not(.soon-tag) { filter: blur(3px); opacity: .55; }
+.route.soon .soon-tag { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; font-family: var(--display); font-size: max(18px, calc(var(--s)*12px)); color: var(--gold); text-shadow: 0 2px 0 #3a1f08; letter-spacing: .04em; }
+.route.soon .soon-tag small { display: block; font: 500 max(10px, calc(var(--s)*5px)) var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--soft); text-shadow: none; margin-top: 4px; }
+.route:hover { background: #26204a; }
+.route .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.route .names { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.route .rn { font-weight: 600; font-size: max(14px, calc(var(--s)*9.5px)); }
+.route .rs { font-size: max(11px, calc(var(--s)*6px)); color: var(--muted); }
+.route canvas { flex: none; width: calc(var(--s)*72px); height: calc(var(--s)*14px); }
+.route .stats { display: flex; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.6px)); color: var(--soft); }
+.btn { font-family: var(--ui); font-size: inherit; font-weight: 600; color: var(--night); background: var(--gold); border: 0; min-height: 44px; padding: 0 calc(var(--s)*8px); cursor: pointer; box-shadow: inset 0 -4px 0 var(--gold-d); }
+.btn.big { width: 100%; min-height: calc(var(--s)*30px); font-family: var(--display); font-weight: 400; font-size: calc(var(--s)*19px); box-shadow: inset 0 calc(var(--s)*-2.5px) 0 var(--gold-d); }
+/* the Fly button and the Hangar stay in reach at the bottom of the menu while the routes scroll */
+.fly-bar { position: sticky; bottom: calc(var(--s)*-12px); z-index: 2; margin: calc(var(--s)*4px) calc(var(--s)*-10px) calc(var(--s)*-12px); padding: calc(var(--s)*8px) calc(var(--s)*10px) calc(var(--s)*10px); display: flex; flex-direction: column; gap: 8px; background: rgb(13,11,30); box-shadow: 0 calc(var(--s)*-8px) calc(var(--s)*8px) rgba(13,11,30,.9); }
+.fly-sub { display: flex; gap: 8px; }
+.fly-sub .btn { flex: 1 1 0; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: var(--ground); }
+.fly-sub .btn[hidden] { display: none; }
+#btnHangar svg { width: 18px; height: 18px; flex: none; }
+body.preview #btnHangar small { display: inline; }
+@media (min-width: 1000px) { #btnHangar small { display: inline; } }
+#btnHangar small { display: none; font: 500 max(10px, calc(var(--s)*4.8px)) var(--mono); letter-spacing: .04em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line2); }
+.btn:active { transform: translateY(1px); }
+.row-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+img.xav { border-radius: 50%; flex: none; vertical-align: middle; }
+.hg-x { display: flex; align-items: center; gap: 8px; }
+#pilotTitle { display: flex; align-items: center; gap: 10px; }
+#btnAccount { gap: 6px; max-width: 46vw; overflow: hidden; white-space: nowrap; }
+#btnAccount.on { color: var(--lime); border-color: var(--lime); }
+.wallet-modal { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; padding: 14px; background: rgba(6,5,16,.78); }
+.wm-card { width: min(100%, 380px); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; background: var(--ground); border: 2px solid var(--gold); box-shadow: 0 0 0 3px #3b2306, 0 18px 40px rgba(0,0,0,.6); }
+.wm-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wm-head h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 26px; color: var(--ink); }
+.wm-x { background: none; border: 2px solid var(--line2); color: var(--ink); width: 36px; height: 36px; font-size: 20px; line-height: 1; cursor: pointer; }
+.wm-list { display: flex; flex-direction: column; gap: 8px; }
+.wm-item { box-sizing: border-box; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 12px; background: var(--night); border: 2px solid var(--line2); color: var(--ink); font: 600 15px var(--ui); text-align: left; text-decoration: none; cursor: pointer; }
+.wm-item:hover, .wm-item:focus-visible { border-color: var(--gold); }
+.wm-item:disabled { opacity: .6; cursor: progress; }
+.wm-item img, .wm-dot { width: 28px; height: 28px; flex: none; border-radius: 6px; }
+.wm-dot { background: linear-gradient(135deg, var(--gold), #b04ad8); }
+.wm-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.wm-tag { font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--lime); }
+.wm-card .note { margin: 0; font-size: 13px; line-height: 1.45; color: var(--soft); }
+.keys { display: flex; flex-wrap: wrap; gap: 6px 12px; font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.4px)); color: var(--muted); }
+.keys kbd { font-family: var(--mono); color: var(--ink); border: 1px solid var(--line2); border-bottom-width: 2px; padding: 0 4px; }
+.note { font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.4px)); line-height: 1.5; color: var(--muted); margin: 0; }
+.menu-foot { margin-top: auto; display: flex; flex-direction: column; gap: calc(var(--s)*5px); padding-top: calc(var(--s)*6px); }
+
+#over { background: linear-gradient(180deg, rgba(13,11,30,.35), rgba(13,11,30,.8)); padding: calc(var(--s)*12px) calc(var(--s)*8px); justify-content: center; }
+.over-card { pointer-events: auto; position: relative; background: var(--ground); border: 3px solid var(--gold); box-shadow: 0 0 0 3px #3a1f08, 0 calc(var(--s)*6px) 0 rgba(0,0,0,.35); padding: calc(var(--s)*12px) calc(var(--s)*8px) calc(var(--s)*8px); display: flex; flex-direction: column; gap: calc(var(--s)*5px); }
+.ov-banner { position: absolute; left: 50%; top: 0; transform: translate(-50%, -55%); background: var(--gold); color: var(--night); font-family: var(--display); font-size: calc(var(--s)*15px); line-height: 1; padding: calc(var(--s)*2px) calc(var(--s)*9px) calc(var(--s)*2.5px); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; box-shadow: 0 0 0 3px #3a1f08, inset 0 calc(var(--s)*-1.5px) 0 var(--gold-d); }
+.over-card.down .ov-banner { background: var(--bad); box-shadow: 0 0 0 3px #3a0f0f, inset 0 calc(var(--s)*-1.5px) 0 #b23a3a; }
+.ov-hero { display: flex; align-items: center; gap: calc(var(--s)*6px); }
+.ov-hero .portrait { width: calc(var(--s)*40px); height: calc(var(--s)*40px); background: radial-gradient(circle, #3a2e6b 0 55%, #241d47 56%); border: 2px solid var(--line2); }
+.ov-score { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ov-label { font-family: var(--mono); font-size: max(10px, calc(var(--s)*5px)); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.ov-cause { margin: 0; font-size: max(13px, calc(var(--s)*7.4px)); color: var(--cream); font-weight: 600; }
+.ov-quip { color: var(--gold-l); font-weight: 400; font-style: italic; }
+.ov-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(var(--s)*34px), 1fr)); gap: calc(var(--s)*3px); }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: calc(var(--s)*3px) 4px; background: var(--night); border: 2px solid var(--line); min-width: 0; }
+.tile b { font-family: var(--display); font-weight: 400; font-size: calc(var(--s)*14px); line-height: .9; color: var(--cream); }
+.tile span { font-family: var(--mono); font-size: max(9px, calc(var(--s)*4.4px)); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: center; overflow-wrap: anywhere; }
+.ov-best { margin: 0; font-family: var(--mono); font-size: max(11px, calc(var(--s)*5.4px)); color: var(--soft); text-align: center; }
+.ov-acts .btn.big { flex: 1 1 100%; display: flex; align-items: center; justify-content: center; gap: .4em; }
+.ov-acts .btn.ghost { flex: 1 1 0; }
+.ov-tech { font-size: max(11px, calc(var(--s)*5.6px)); color: var(--muted); border-top: 2px solid var(--line); padding-top: calc(var(--s)*3px); }
+.ov-tech summary { cursor: pointer; font-family: var(--mono); letter-spacing: .04em; min-height: 32px; display: flex; align-items: center; gap: .4em; }
+.ov-tech summary .ok, #ovCheck.ok { color: var(--lime); } #ovCheck.bad { color: var(--bad); }
+.ov-tech[open] { display: flex; flex-direction: column; gap: 6px; }
+.badge { animation: pop-in .4s steps(4) both; }
+body.reduced .badge { animation: none; }
+.over-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.big-dist { font-family: var(--display); font-size: calc(var(--s)*44px); text-shadow: 0 calc(var(--s)*2px) 0 #3a1f08; line-height: .8; color: var(--cream); font-variant-numeric: tabular-nums; }
+.big-dist small { font-size: .45em; color: var(--gold); margin-left: .12em; }
+.badge { font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.4px)); font-weight: 500; color: var(--night); background: var(--lime); padding: 2px 8px; align-self: flex-start; }
+.facts { display: grid; grid-template-columns: auto minmax(0,1fr); column-gap: 14px; row-gap: 3px; margin: 0; font-size: max(12px, calc(var(--s)*7px)); }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; min-width: 0; }
+.facts dd.ok { color: var(--lime); }
+.facts dd.bad { color: var(--bad); }
+.verify { font-family: var(--mono); font-size: max(10px, calc(var(--s)*5px)); line-height: 1.45; color: var(--muted); margin: 0; }
+
+/* ---------- touch deck ---------- */
+#pad { display: none; flex: 0 0 auto; height: clamp(120px, 24vh, 180px); margin-top: 10px; gap: 12px; padding-bottom: max(8px, env(safe-area-inset-bottom, 0px)); }
+body.touch #cabinet { padding-top: max(8px, env(safe-area-inset-top, 0px)); padding-bottom: 0; }
+body.touch .gslot { min-width: 52px; min-height: 52px; }
+body.touch .gslot b { display: none; }
+body.touch.flying #pad { display: flex; height: clamp(84px, 13vh, 120px); }
+#fireBtn { flex: 1 1 auto; border-radius: 16px; -webkit-user-select: none; user-select: none; border: 0; background: var(--gold); color: #3b2306; font-family: var(--display); font-size: 40px; touch-action: none; box-shadow: inset 0 -6px 0 var(--gold-d); }
+#fireBtn.on { transform: translateY(2px); box-shadow: inset 0 -2px 0 var(--gold-d); }
+
+/* ---------- entry screen ---------- */
+.topbar { display: flex; align-items: center; gap: 6px; margin: calc(var(--s)*-6px) 0 calc(var(--s)*2px); }
+.tb-gap { flex: 1; }
+.tb-home, .tb-btn { font-family: var(--ui); font-weight: 600; font-size: max(12px, calc(var(--s)*6.4px)); color: var(--ink); background: var(--ground); border: 2px solid var(--line2); min-height: 40px; min-width: 40px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer; }
+.tb-home:hover, .tb-btn:hover { border-color: var(--gold); }
+.tb-btn svg { width: 16px; height: 16px; }
+.mode-line { margin: 0; font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.4px)); color: var(--soft); }
+.pick { display: grid; grid-template-columns: 1fr; gap: calc(var(--s)*4px); }
+.route[aria-pressed="true"] { background: #2b2458; box-shadow: inset 0 0 0 2px var(--gold); }
+.route .avail { font-family: var(--mono); font-size: max(10px, calc(var(--s)*5px)); letter-spacing: .06em; text-transform: uppercase; }
+.route .avail.on { color: var(--lime, #b6f06a); } .route .avail.off { color: var(--muted); }
+.note.kit { color: var(--soft); }
+.overlay.info { background: rgba(13,11,30,.96); padding: calc(var(--s)*14px) calc(var(--s)*12px); gap: calc(var(--s)*5px); }
+.overlay.info h3 { margin: calc(var(--s)*3px) 0 0; font-family: var(--ui); font-size: max(13px, calc(var(--s)*7.4px)); color: var(--gold); }
+.overlay.info p { margin: 0; line-height: 1.45; color: var(--soft); }
+.overlay.info .ov-acts { margin-top: auto; }
+/* ---------- public preview: no Flight Lab, developer controls or diagnostics ---------- */
+body.preview #lab, body.preview .lab-open-btn, body.preview #btnGrant, body.preview .dev-only, body.preview .ov-tech, body.preview #routeLabLabel, body.preview #routeLab { display: none !important; }
+@media (max-width: 420px) {
+  .note, .keys, .status, .route .stats, .ov-best { font-size: 12px; }
+  .kicker, .group-label { font-size: 11px; }
+  .route .rs { font-size: 12px; }
+  .tile span { font-size: 10px; }
+}
+/* ---------- lab ---------- */
+#lab { flex: 0 0 300px; display: none; flex-direction: column; gap: 16px; padding-block: 16px; overflow-y: auto; font-size: 13px; color: var(--ink); }
+@media (min-width: 1000px) { #lab { display: flex; } .lab-close, .lab-open-btn { display: none; } }
+@media (max-width: 999px) {
+  #lab.open { display: flex; position: fixed; inset: 0; z-index: 50; background: var(--page); padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px)); }
+}
+.lab-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.lab-head h2 { font-family: var(--display); font-size: 38px; line-height: .8; margin: 0; color: var(--gold); font-weight: 400; }
+.lab-sec { display: flex; flex-direction: column; gap: 6px; }
+.lab-sec h3 { margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.readout { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; font-variant-numeric: tabular-nums; }
+.readout dt { color: var(--muted); }
+.readout dd { margin: 0; text-align: right; }
+table.log { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.log th { text-align: left; font-family: var(--mono); font-weight: 500; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 4px; border-bottom: 1px solid var(--line); }
+table.log td { padding: 4px; border-bottom: 1px solid rgba(47,40,86,.6); }
+table.log td.n, table.log th.n { text-align: right; }
+.recent { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.recent li { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.recent li b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.qs { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.4; display: flex; flex-direction: column; gap: 4px; }
+.qs b { color: var(--ink); font-weight: 600; }
+#importBox textarea { width: 100%; box-sizing: border-box; min-height: 90px; background: var(--ground); color: var(--ink); border: 1px solid var(--line); font: 12px/1.3 var(--mono); padding: 8px; }
+#importBox a { color: var(--gold); word-break: break-all; }
+.lab-msg { font-size: 12px; color: var(--lime); min-height: 1em; }
+.lab-msg.bad { color: var(--bad); }
+.empty { color: var(--muted); }
+/* ---------- v3: Gear, link, banners ---------- */
+.gear { position: absolute; right: calc(var(--s)*8px); bottom: calc(var(--s)*24px); display: flex; gap: calc(var(--s)*3px); pointer-events: auto; }
+.gslot { position: relative; min-width: 44px; min-height: 44px; width: calc(var(--s)*24px); height: calc(var(--s)*24px); display: grid; place-items: center; padding: 0; background: var(--ground); border: 2px solid var(--line2); color: var(--ink); font-family: var(--mono); cursor: pointer; touch-action: none; }
+.gslot svg { width: 52%; height: 52%; }
+.gslot b { position: absolute; left: 2px; top: 1px; font-size: max(9px, calc(var(--s)*4.6px)); font-weight: 500; color: var(--muted); }
+.gslot .n { position: absolute; right: 3px; bottom: 1px; font-size: max(10px, calc(var(--s)*5.4px)); color: var(--cream); }
+.gslot .st { position: absolute; left: 2px; bottom: 1px; font-size: max(8px, calc(var(--s)*4.2px)); color: var(--gold-l); }
+.gslot.ready { border-color: var(--gold); }
+.gslot.fired { animation: fired .45s steps(5) 1; }
+@keyframes fired { 0% { transform: scale(1.25); background: var(--gold); color: var(--night); } 100% { transform: scale(1); } }
+body.reduced .gslot.fired { animation: none; outline: 2px solid var(--gold); }
+.gslot.ready.g-shield { color: #9fd8ff; } .gslot.ready.g-spread { color: var(--gold-l); } .gslot.ready.g-seed { color: var(--lime); } .gslot.ready.g-long { color: #ffb3d9; }
+.gslot.arming { border-color: var(--blue); animation: blink .4s steps(2) infinite; }
+.gslot.empty, .gslot.offline { opacity: .45; }
+.gslot.offline { border-style: dashed; }
+.link { font-family: var(--mono); font-size: calc(var(--s)*4.6px); letter-spacing: .08em; text-transform: uppercase; padding: calc(var(--s)*1.4px) calc(var(--s)*3px); background: var(--ground); border: 2px solid var(--line2); color: var(--soft); }
+.banner { position: absolute; left: calc(var(--s)*8px); right: calc(var(--s)*8px); top: calc(var(--s)*80px); padding: calc(var(--s)*2.6px) calc(var(--s)*4px); background: rgba(27,21,48,.92); border: 2px solid var(--bad); color: var(--cream); font-family: var(--mono); font-size: max(10px, calc(var(--s)*5.4px)); text-align: center; }
+.fxchip { position: absolute; left: calc(var(--s)*8px); bottom: calc(var(--s)*24px); padding: calc(var(--s)*1.6px) calc(var(--s)*3px); background: var(--ground); border: 2px solid #9fd8ff; color: #d8f1ff; font-family: var(--mono); font-size: max(9px, calc(var(--s)*5px)); letter-spacing: .08em; }
+.modes { display: flex; gap: 0; align-self: flex-start; border: 2px solid var(--line2); }
+.modes button { font-family: var(--mono); font-size: max(11px, calc(var(--s)*5.6px)); letter-spacing: .1em; text-transform: uppercase; min-height: 36px; padding: 0 calc(var(--s)*6px); background: var(--ground); color: var(--muted); border: 0; cursor: pointer; }
+.modes button[aria-pressed="true"] { background: var(--gold); color: var(--night); }
+.modes button:disabled { opacity: .45; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) { .pill.running svg { animation: none; } #toast { transition: none; } }
+
+/* Hangar (account, Gear, boxes, collection, boards) */
+#hangar, #conflict, #settings { background: rgba(13,11,30,.94); padding: calc(var(--s)*12px) calc(var(--s)*8px); gap: calc(var(--s)*5px); }
+.hg-head { position: sticky; top: calc(var(--s)*-12px); z-index: 3; margin: calc(var(--s)*-12px) calc(var(--s)*-8px) 0; padding: calc(var(--s)*12px) calc(var(--s)*8px) 0; background: rgb(13,11,30); display: flex; flex-direction: column; gap: calc(var(--s)*4px); }
+.hg-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.hg-title .kicker { font-family: var(--display); font-size: calc(var(--s)*20px); letter-spacing: .04em; text-transform: none; color: var(--gold); line-height: .9; text-shadow: 0 calc(var(--s)*1.5px) 0 #3a1f08; }
+.hg-back { font: 600 13px var(--ui); color: var(--ink); background: var(--ground); border: 2px solid var(--line2); min-height: 36px; padding: 0 12px; cursor: pointer; white-space: nowrap; }
+.hg-back:hover { border-color: var(--gold); }
+#conflict { justify-content: center; }
+#hangar > .kicker:first-child, #settings > .kicker:first-child { font-family: var(--display); font-size: calc(var(--s)*20px); letter-spacing: .04em; text-transform: none; color: var(--gold); line-height: .9; text-shadow: 0 calc(var(--s)*1.5px) 0 #3a1f08; }
+.hg-body .note { font-size: max(12px, calc(var(--s)*5.6px)); line-height: 1.45; color: var(--soft); }
+/* one row of tabs, underlined like the site's: scrolls sideways instead of wrapping on narrow screens */
+.hg-tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; border-bottom: 2px solid var(--line2); margin: 0 calc(var(--s)*-2px); }
+.hg-tabs::-webkit-scrollbar { display: none; }
+.hg-tabs button { flex: 1 0 auto; font: 600 14px var(--ui); color: var(--muted); background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 8px 6px; min-height: 40px; cursor: pointer; white-space: nowrap; }
+.hg-tabs button:hover { color: var(--ink); }
+.hg-tabs button[aria-selected="true"] { color: var(--gold); border-bottom-color: var(--gold); }
+.hg-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.hg-list, .hg-board { display: flex; flex-direction: column; gap: 6px; }
+.hg-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--night); border: 2px solid var(--line); padding: 6px 8px; min-height: 40px; }
+.hg-row.pending { border-style: dashed; }
+.hg-appeal { display: flex; flex-direction: column; gap: 6px; margin: -2px 0 4px; }
+.hg-appeal textarea { font: inherit; font-family: var(--ui); color: inherit; background: var(--night); border: 2px solid var(--line); padding: 6px 8px; resize: vertical; max-width: 100%; }
+.hg-name { font-weight: 600; color: var(--ink); flex: 1 1 8em; min-width: 0; }
+.hg-sub { color: var(--muted); font-size: 12px; }
+.hg-count { font: 700 16px var(--mono); color: var(--gold); min-width: 1.6em; text-align: center; }
+.hg-rank { font: 700 14px var(--mono); color: var(--gold); min-width: 2.6em; }
+.hg-tier { width: 12px; height: 12px; border: 2px solid var(--night); outline: 1px solid var(--line2); }
+.hg-box { width: 14px; height: 14px; background: var(--gold); border: 2px solid #3a2340; box-shadow: inset 5px 0 0 0 transparent, inset -5px 0 0 0 transparent; background-image: linear-gradient(90deg, transparent 40%, #b04ad8 40%, #b04ad8 60%, transparent 60%); }
+.hg-dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+.hg-dl dt { color: var(--muted); }
+.hg-dl dd { margin: 0; font-family: var(--mono); overflow-wrap: anywhere; }
+.hg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(var(--s)*52px), 1fr)); gap: 8px; }
+.hg-card { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 8px; background: var(--night); border: 2px solid var(--line); border-top: 5px solid var(--tier, var(--line2)); min-width: 0; }
+.hg-card.pending { border-style: dashed; border-top-style: solid; opacity: .9; }
+.hg-card .swatch { height: 34px; display: grid; place-items: center; background: repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 4px, transparent 4px 8px), #120f26; color: var(--tier); font-family: var(--display); font-size: 26px; line-height: 1; }
+.hg-card .nm { font-weight: 600; color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
+.hg-card .meta { font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--tier); }
+.hg-card .cnt { position: absolute; right: 6px; top: 6px; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--night); background: var(--gold); padding: 0 5px; }
+.hg-card .dl { font-family: var(--mono); font-size: 11px; color: var(--gold-l); }
+.tier-common { --tier: #c9c3e6; } .tier-rare { --tier: #4f7cff; } .tier-epic { --tier: #c873ff; } .tier-legendary { --tier: #f6c445; }
+.hg-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.hg-legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 5px; background: var(--tier); vertical-align: -1px; }
+.hg-row.podium-1 { border-color: #f6c445; } .hg-row.podium-2 { border-color: #c9d3e6; } .hg-row.podium-3 { border-color: #d08a4f; }
+.hg-row.podium-1 .hg-rank { color: #f6c445; } .hg-row.podium-2 .hg-rank { color: #dfe6f3; } .hg-row.podium-3 .hg-rank { color: #e0a06a; }
+.hg-row.me { background: #2a2350; border-color: var(--lime); }
+.hg-state { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 2px 6px; border: 2px solid currentColor; }
+.hg-state.ok { color: var(--lime); } .hg-state.warn { color: var(--gold); } .hg-state.bad { color: var(--bad); } .hg-state.info { color: var(--soft); }
+.hg-km { font-family: var(--display); font-size: 22px; line-height: .9; color: var(--cream); }
+.hg-tier.tier-common, .hg-tier.tier-rare, .hg-tier.tier-epic, .hg-tier.tier-legendary { background: var(--tier); }
+.btn.sm { min-width: 36px; min-height: 36px; padding: 0 8px; }
+.note.bad { color: var(--bad); }
+#settings { overflow-y: auto; }
+.set-toggles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.set-acts { position: sticky; bottom: calc(var(--s)*-12px); margin: auto calc(var(--s)*-8px) calc(var(--s)*-12px); padding: 8px calc(var(--s)*8px) calc(var(--s)*12px); background: rgb(13,11,30); display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px; }
+.set-toggles .btn, .set-acts .btn { width: 100%; min-width: 0; }
+body.touch #settings .hg-list, body.touch #settings .set-defaults { display: none; }
+body.touch .set-acts { grid-template-columns: 2fr 1fr; }
+.reveal { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: #0d0b1e; padding: 16px; text-align: center; }
+.reveal-cv { width: min(60%, 288px); height: auto; aspect-ratio: 1; image-rendering: pixelated; }
+.reveal-title { font: 700 max(18px, calc(var(--s)*10px)) var(--mono); color: var(--cream); letter-spacing: .06em; text-transform: uppercase; }
+.reveal.open .reveal-title { animation: pop-in .35s steps(4) both; }
+@keyframes pop-in { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+body.reduced .reveal.open .reveal-title { animation: none; }
+#settings .hg-row { flex-wrap: nowrap; min-height: 0; padding: 3px 8px; }
+#settings .hg-list { gap: 4px; }
+.keycap { font-family: var(--mono); min-width: 5.2em; }
+.keycap.capturing { border-color: var(--gold); color: var(--gold); animation: blink .5s steps(2) infinite; }
+body.reduced .keycap.capturing, body.reduced .gslot.arming { animation: none; }
+</style>
+
+<div id="app">
+  <main id="cabinet">
+    <div id="screenBox">
+      <div id="screenWrap">
+        <canvas id="game" width="240" height="400" aria-label="Game screen"></canvas>
+
+        <div id="hud" hidden>
+          <div class="hud-top">
+            <div class="hud-left">
+              <div class="dist" id="hudDist">0.00<small>km</small></div>
+              <div class="stage-chip" id="hudStage">Stage 1 · Meadow Run</div>
+              <span class="link" id="hudLink">Practice</span>
+            </div>
+            <div class="hud-right">
+              <span class="chip" id="hudRoute">Genesis</span>
+              <button class="icon-btn" id="btnSound" type="button" aria-label="Sound on" aria-pressed="true">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 6h3l4-3v10l-4-3H2z"/><path id="sndWave" d="M11.5 5.5a3.5 3.5 0 0 1 0 5M13.5 3.5a6.3 6.3 0 0 1 0 9"/></svg>
+              </button>
+              <button class="icon-btn" id="btnPause" type="button" aria-label="Pause">II</button>
+            </div>
+          </div>
+          <div class="pill" id="hudWheel">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"/><path d="M8 1.5v13M1.5 8h13M3.4 3.4l9.2 9.2M12.6 3.4l-9.2 9.2"/></svg>
+            <span id="hudWheelText">Squeektoshi asleep</span>
+          </div>
+          <div class="hud-bottom">
+            <div class="seeds" id="hudFuel"><span>SEEDS</span><div class="bar"><i id="hudFuelBar"></i></div></div>
+            <div class="blocks" id="hudBlocks"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11"/><path d="M5 5h1M8 5h1M5 8h1M8 8h1"/></svg><span id="hudBlocksN">0 blocks</span></div>
+          </div>
+          <div class="banner" id="hudBanner" role="status" hidden></div>
+          <div class="fxchip" id="hudFx" hidden></div>
+          <div class="gear" id="hudGear">
+            <button class="gslot" id="gs0" type="button" tabindex="-1"><b>Z</b><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="8" cy="8" r="6"/><path d="M5.5 6.5a3 3 0 0 1 3-2"/></svg><span class="n">0</span><span class="st"></span></button>
+            <button class="gslot" id="gs1" type="button" tabindex="-1"><b>X</b><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 14V3M8 14L3 5M8 14l5-9"/></svg><span class="n">0</span><span class="st"></span></button>
+            <button class="gslot" id="gs2" type="button" tabindex="-1"><b>C</b><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 2c3 4 4.5 6 4.5 8a4.5 4.5 0 0 1-9 0C3.5 8 5 6 8 2z"/></svg><span class="n">0</span><span class="st"></span></button>
+          </div>
+          <button class="replay-tag" id="btnReplaySpeed" type="button" hidden>REPLAY ×1</button>
+        </div>
+
+        <div id="toast" aria-live="polite"><div class="t1" id="toast1"></div><div class="t2" id="toast2"></div></div>
+
+        <section class="overlay" id="menu" aria-label="Choose a route">
+          <div class="topbar">
+            <a class="tb-home" id="btnHome" href="../">‹ Home</a>
+            <span class="tb-gap"></span>
+            <button class="tb-btn" type="button" id="btnAccount" aria-label="Wallet and X">Connect wallet</button>
+            <button class="tb-btn" type="button" id="btnHelp" aria-label="How to play">?</button>
+            <button class="tb-btn" type="button" id="btnSettings" aria-label="Controls and sound"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 4h7M12 4h2M2 8h2M7 8h7M2 12h9M14 12h0"/><circle cx="10.5" cy="4" r="1.5"/><circle cx="5.5" cy="8" r="1.5"/><circle cx="12.5" cy="12" r="1.5"/></svg></button>
+          </div>
+          <header class="hero">
+            <div class="title-row">
+              <h1 class="logo" aria-label="SqueekRaid"><span class="l1">Squeek<em>Raid</em></span><span class="l2"><i aria-hidden="true"></i>with Squeektoshi<i aria-hidden="true"></i></span></h1>
+              <div class="badge-pilot"><img class="portrait" id="menuPortrait" src="/*CAPTAIN*/" width="32" height="32" alt=""><span>Captain</span></div>
+            </div>
+          </header>
+          <div class="modes" role="group" aria-label="Flight mode"><button type="button" id="modePractice" aria-pressed="true">Practice</button><button type="button" id="modeOnline" aria-pressed="false" disabled>Online</button></div>
+          <p class="mode-line" id="menuStatusText">Practice flights run in your browser.</p>
+          <div class="pick" role="group" aria-label="Route">
+            <div class="routes" id="routeGenesis"></div>
+            <div class="routes" id="routeDaily"></div>
+          </div>
+          <details class="more" id="moreDays" hidden><summary>Earlier days</summary><div class="routes" id="routeDailyMore"></div></details>
+          <div class="group-label" id="routeLabLabel">Lab</div>
+          <div class="routes" id="routeLab"></div>
+          <p class="note kit" id="kitNote"></p>
+          <div class="fly-bar">
+            <button class="btn big" type="button" id="btnFly"><span class="go" aria-hidden="true">▶</span><span id="btnFlyText">Fly Genesis</span></button>
+            <div class="fly-sub"><button class="btn ghost" type="button" id="btnHangar" hidden><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M1.5 14V7L8 2.5 14.5 7v7"/><path d="M4.5 14V9.5h7V14"/></svg><span>Hangar</span><small>Profile · Gear · Boards</small></button><button class="btn ghost lab-open-btn" type="button" id="btnLabOpen">Flight lab and run log</button></div>
+          </div>
+          <p class="note dev-only">Rules v3: fixed speed, and pressure that keeps rising with distance with no last stage. Cats learn new tricks as you go: tracker drones, pincer pairs, mine layers, strafing jets with an edge warning. Seed depots are never more than 338 m apart. The wheel data only shapes the river.</p>
+        </section>
+
+        <section class="overlay info" id="help" hidden aria-label="How to play">
+          <h2 class="title">How to play</h2>
+          <div class="keys" id="keysHelp"><span><kbd>←</kbd><kbd>→</kbd> steer</span><span><kbd>Space</kbd> fire</span><span><kbd>Z</kbd><kbd>X</kbd><kbd>C</kbd> Gear</span><span><kbd>P</kbd> pause</span></div>
+          <p>Shoot the cats, collect seeds so your fuel never runs out, and fly as far as you can. Every flight can pause for 20 seconds in total.</p>
+          <h3>The routes</h3>
+          <p><b>Genesis</b> is fixed forever: Squeektoshi’s first recorded night, the all-time challenge. A new <b>Daily</b> is built every day at 00:00 UTC from one of his recorded wheel runs: busy nights make wild rivers, sleepy nights make calm ones.</p>
+          <h3>Practice and Online</h3>
+          <p><b>Practice</b> runs entirely in your browser with a practice Gear kit; results stay on this device. <b>Online</b> flights are replayed by the server and only a flight that reproduces exactly counts for the boards and rewards.</p>
+          <p id="helpOnline"></p>
+          <div class="ov-acts"><button class="btn big" type="button" id="helpBack">Back</button></div>
+        </section>
+
+        <section class="overlay info" id="pilot" hidden aria-label="Pilot profile">
+          <h2 class="title" id="pilotTitle">Pilot</h2>
+          <div id="pilotBody"><p class="note">Loading…</p></div>
+          <div class="ov-acts"><button class="btn big" type="button" id="pilotBack">Back</button></div>
+        </section>
+
+        <section class="overlay info" id="account" hidden aria-label="Wallet and X">
+          <div class="title-row"><h2 class="title">Your pilot</h2><div class="badge-pilot"><img class="portrait" id="accountPortrait" src="/*CAPTAIN*/" width="32" height="32" alt=""></div></div>
+          <p id="accountText">Practice needs no account.</p>
+          <div class="row-btns" id="accountActs"></div>
+          <div class="ov-acts"><button class="btn big" type="button" id="accountBack">Back</button></div>
+        </section>
+
+        <section class="overlay hangar" id="hangar" hidden aria-label="Hangar"></section>
+
+        <section class="overlay" id="settings" hidden aria-label="Controls and settings"></section>
+
+        <section class="overlay" id="conflict" hidden aria-label="Flight in progress">
+          <div class="kicker">Flight in progress</div>
+          <p class="note" id="conflictText"></p>
+          <div class="row-btns"><button class="btn" type="button" id="conflictEnd">End it and fly here</button><button class="btn ghost" type="button" id="conflictKeep">Keep it</button></div>
+        </section>
+
+        <section class="overlay" id="pause" hidden aria-label="Paused">
+          <div class="over-card">
+            <div class="kicker">Holding pattern</div>
+            <div class="title">Paused</div>
+            <p class="note" id="pauseBudget">20.0 s of pause left this flight</p>
+            <div class="row-btns">
+              <button class="btn" type="button" id="btnResume">Resume</button>
+              <button class="btn ghost" type="button" id="btnQuit">Back to routes</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="overlay" id="over" hidden aria-label="Run summary">
+          <div class="over-card">
+            <div class="ov-banner"><span id="ovKicker">Splashdown</span></div>
+            <div class="ov-hero">
+              <img class="portrait" id="overPortrait" src="/*CAPTAIN*/" width="32" height="32" alt="">
+              <div class="ov-score">
+                <div class="ov-label">Distance</div>
+                <div class="big-dist" id="ovDist">0.00<small>km</small></div>
+                <span class="badge" id="ovBest" hidden>★ NEW BEST</span>
+              </div>
+            </div>
+            <p class="ov-cause"><span id="ovCause">—</span> <span class="ov-quip" id="ovQuip"></span></p>
+            <div class="ov-tiles">
+              <div class="tile"><b id="ovStageN">1</b><span id="ovStage">Stage</span></div>
+              <div class="tile"><b id="ovKills">0</b><span>Shot down</span></div>
+              <div class="tile"><b id="ovGates">0</b><span>Gates</span></div>
+              <div class="tile" id="ovBlocksTile"><b id="ovBlocks">0</b><span id="ovBlocksLabel">Blocks</span></div>
+              <div class="tile"><b id="ovTime">0:00</b><span>Airborne</span></div>
+            </div>
+            <p class="ov-best" id="ovPrev">—</p>
+            <div class="row-btns ov-acts">
+              <button class="btn big" type="button" id="btnAgain"><span class="go" aria-hidden="true">▶</span>Fly again</button>
+              <a class="btn ghost" id="btnShare" href="https://x.com/intent/post" target="_blank" rel="noopener">Share on X</a>
+              <button class="btn ghost" type="button" id="btnRoutes">Routes</button>
+            </div>
+            <details class="ov-tech">
+              <summary>Flight record · <span id="ovCheck">—</span></summary>
+              <dl class="facts">
+                <dt>Route</dt><dd id="ovRoute">—</dd>
+                <dt>Flight</dt><dd id="ovStats">—</dd>
+              </dl>
+              <p class="verify" id="ovVerify"></p>
+            </details>
+          </div>
+        </section>
+      </div>
+    </div>
+    <div id="pad" aria-hidden="true">
+      <button id="fireBtn" type="button" tabindex="-1">FIRE</button>
+    </div>
+  </main>
+
+  <aside id="lab" aria-label="Flight lab">
+    <div class="lab-head"><h2>Flight Lab</h2><button class="btn ghost lab-close" type="button" id="btnLabClose">Close</button></div>
+    <section class="lab-sec">
+      <h3>Live readout</h3>
+      <dl class="readout">
+        <dt>Distance</dt><dd id="lvDist">—</dd>
+        <dt>Pressure P(x)</dt><dd id="lvP">—</dd>
+        <dt>Threat budget</dt><dd id="lvBudget">—</dd>
+        <dt>Stage</dt><dd id="lvStage">—</dd>
+        <dt>Channel width</dt><dd id="lvChannel">—</dd>
+        <dt>Depot spacing</dt><dd id="lvFuelSp">—</dd>
+        <dt>Next depot</dt><dd id="lvNext">—</dd>
+        <dt>Unlocked</dt><dd id="lvUnlocked">—</dd>
+        <dt>On screen</dt><dd id="lvOnScreen">—</dd>
+      </dl>
+    </section>
+    <section class="lab-sec">
+      <h3>Results by route (this browser)</h3>
+      <div id="labTable"></div>
+    </section>
+    <section class="lab-sec">
+      <h3>Recent flights</h3>
+      <ul class="recent" id="labRecent"></ul>
+    </section>
+    <section class="lab-sec">
+      <h3>What to evaluate</h3>
+      <ol class="qs">
+        <li><b>Do the cats feel smarter</b>: trackers that follow late, pincers that leave a gap, mines laid in view, jets announced at the edge?</li>
+        <li><b>Is the seed tension right</b> now depots are bounded: tight late, never a wall?</li>
+        <li><b>Does pressure keep rising</b> past 10 km without feeling unfair?</li>
+        <li><b>Is Gear worth pressing</b> and readable when it fires?</li>
+      </ol>
+    </section>
+    <section class="lab-sec">
+      <h3>Evaluate later pressure</h3>
+      <label class="note" for="warpSel">Start practice flights at</label>
+      <select id="warpSel" style="font:13px var(--mono);background:var(--ground);color:var(--ink);border:1px solid var(--line2);padding:6px;min-height:36px">
+        <option value="0">0 km (normal start)</option><option value="3">3 km</option><option value="6">6 km</option><option value="10">10 km</option><option value="20">20 km</option><option value="40">40 km</option>
+      </select>
+      <p class="note">A warped start generates the route up to that point and gives you a full tank and a short clear runway. Online flights always start at 0.</p>
+    </section>
+    <section class="lab-sec">
+      <h3>This browser</h3>
+      <div class="row-btns"><button class="btn ghost" type="button" id="btnClearLog">Clear run log</button><button class="btn ghost" type="button" id="btnGrant" hidden>Add test Gear (local server only)</button></div>
+      <div class="lab-msg" id="labMsg" role="status"></div>
+    </section>
+  </aside>
+</div>
+
+<script>
+/*ATLAS*/
+</script>
+<script>
+/*GAME*/
+</script>

@@ -1,0 +1,13 @@
+{
+  "name": "@sqk/sim",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic flight simulation. Rules v2 is frozen byte-for-byte; rules v3 is the current ruleset.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./v2/source-path": "./src/v2/source-path.ts",
+    "./v3": "./src/v3/index.ts",
+    "./v3/build": "./src/v3/build-hash.ts"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@sqk/activity",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Squeekchain activity (public subset): typed API client, live-state detector and the wheel buckets that shape routes.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "zod": "4.1.11"
+  }
+}
